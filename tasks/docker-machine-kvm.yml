@@ -16,6 +16,10 @@
     dest: /usr/local/bin/docker-machine-driver-kvm
     mode: 0755
 
+- name: Install getfacl for setting acl (next task)
+  apt:
+    name: acl
+
 # otherwise the libvirt dnsmasq will read /etc/hosts and serve 127.0.1.1 for this machines hostname, which breaks the runners
 # https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1326536
 # https://serverfault.com/questions/912527/how-to-set-the-h-no-hosts-for-kvms-dnsmasq-instance
