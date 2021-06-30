@@ -30,7 +30,8 @@
     path: /etc/hosts
     etype: user
     entity: nobody
-    permissions: -rwx
+    permissions: ---
+    state: present
 
 - name: Check if docker-machines network exists
   stat:
