@@ -38,7 +38,7 @@
   register: docker_machines_network
 
 - name: Create testvm so that docker-machines network exists
-  shell: docker-machine -D create -d kvm --kvm-nic-type virtio testvm; docker-machine rm testvm
+  shell: "docker-machine -D create -d kvm --kvm-nic-type virtio testvm; docker-machine rm -f -y testvm"
   failed_when: false
   when: not docker_machines_network.stat.exists
 
