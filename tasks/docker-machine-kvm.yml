@@ -1,0 +1,74 @@
+- name: Install libvirt & qemu-kvm
+  apt:
+    pkg:
+      - qemu-kvm
+      - libvirt-clients
+      - libvirt-daemon-system
+      - netcat-openbsd # required for remote management via virt-manager
+      - python-libvirt # required for virt/virt_net ansible module
+      - python-lxml # required for virt/virt_net ansible module
+    install_recommends: no
+
+# we're using this fork because it has this patch: https://github.com/dhiltgen/docker-machine-kvm/pull/74
+- name: Install docker-machine-kvm driver
+  get_url:
+    url: https://github.com/tdilauro/docker-machine-kvm/releases/download/v0.10.1/docker-machine-driver-kvm-ubuntu16.04
+    dest: /usr/local/bin/docker-machine-driver-kvm
+    mode: 0755
+
+# otherwise the libvirt dnsmasq will read /etc/hosts and serve 127.0.1.1 for this machines hostname, which breaks the runners
+# https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1326536
+# https://serverfault.com/questions/912527/how-to-set-the-h-no-hosts-for-kvms-dnsmasq-instance
+# debugging tip: dnsmasq logs to /var/log/syslog
+- name: Deny libvirt dnsmasq user (nobody) access to /etc/hosts
+  acl:
+    path: /etc/hosts
+    etype: user
+    entity: nobody
+    permissions: -rwx
+
+- name: Check if /network/dns element exists
+  xml:
+    path: /etc/libvirt/qemu/networks/docker-machines.xml
+    xpath: /network/dns
+    count: yes
+  register: docker_machines_dns
+
+- name: Add dns element to /network
+  xml:
+    path: /etc/libvirt/qemu/networks/docker-machines.xml
+    xpath: /network
+    add_children: dns
+  when: docker_machines_dns.count == 0
+
+# we cannot use virt_net ansible module until this bug is fixed: https://github.com/ansible/ansible/issues/64898
+# for some strange reason, no-resolv is added to the automatically generated docker-machines.xml
+# no-resolv is added to the automatically generated dnsmasq config for the docker-machines network
+# because it is an isolated network (because no "<forward mode='..'>" is set in docker-machines.xml)
+# and isolated machines could use DNS to communicate with the outside.
+# https://bugzilla.redhat.com/show_bug.cgi?id=723862
+# https://github.com/libvirt/libvirt/blob/v5.0.0/src/network/bridge_driver.c#L1262
+# now, the docker-machines created via kvm driver are also connected to the default network which
+# has <forward mode="nat">. The issue is, that it is seemlingy random which DNS finally ends up in
+# /etc/resolv.conf on the client (192.168.122.1 or 192.168.42.1)
+# i thought this could also be circumvented by using '--engine-opt dns=8.8.8.8', but that does not work.
+#
+# network xml format: https://libvirt.org/formatnetwork.html
+- name: Set resolver for docker-machines network
+  xml:
+    path: /etc/libvirt/qemu/networks/docker-machines.xml
+    xpath: /network/dns
+    set_children:
+      - forwarder:
+          addr: 46.182.19.48 # digitalcourage dns
+
+- name: Start 'default' network
+  virt_net:
+    name: default
+    state: active
+
+- name: Autostart 'default' network (it's required by docker-machine-kvm driver)
+  shell: virsh net-list --all --autostart --name | grep -q ^default$ || virsh net-autostart default
+  register: virsh_default_autostart
+  changed_when: '"Network default marked as autostarted" in virsh_default_autostart.stdout'
+

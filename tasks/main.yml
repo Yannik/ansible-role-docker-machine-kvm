@@ -1,0 +1,2 @@
+- import_tasks: docker-machine-kvm.yml
+  tags: docker-machine-kvm
