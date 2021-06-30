@@ -7,6 +7,7 @@
       - netcat-openbsd # required for remote management via virt-manager
       - python-libvirt # required for virt/virt_net ansible module
       - python-lxml # required for virt/virt_net ansible module
+      - dnsmasq # requirement for docker-machine-kvm
     install_recommends: no
 
 # we're using this fork because it has this patch: https://github.com/dhiltgen/docker-machine-kvm/pull/74
@@ -30,6 +31,17 @@
     etype: user
     entity: nobody
     permissions: -rwx
+
+- name: Check if docker-machines network exists
+  stat:
+    path: /etc/libvirt/qemu/networks/docker-machines.xml
+  register: docker_machines_network
+
+- name: Create testvm so that docker-machines network exists
+  shell: docker-machine -D create -d kvm --kvm-nic-type virtio testvm; docker-machine rm testvm
+  failed_when: false
+  when: not docker_machines_network.stat.exists
+
 
 - name: Check if /network/dns element exists
   xml:
