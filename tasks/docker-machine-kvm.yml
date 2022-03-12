@@ -79,7 +79,7 @@
     xpath: /network/dns
     set_children:
       - forwarder:
-          addr: 46.182.19.48 # digitalcourage dns
+          addr: 5.1.66.255 # ffmuc dns #1
 
 - name: Start 'default' network
   virt_net:
