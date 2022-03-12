@@ -61,7 +61,8 @@
   when: docker_machines_dns.count == 0
 
 # we cannot use virt_net ansible module until this bug is fixed: https://github.com/ansible/ansible/issues/64898
-# for some strange reason, no-resolv is added to the automatically generated docker-machines.xml
+# new issue: https://github.com/ansible-collections/community.libvirt/issues/107
+# for some reason, no-resolv is added to the automatically generated docker-machines.xml
 # no-resolv is added to the automatically generated dnsmasq config for the docker-machines network
 # because it is an isolated network (because no "<forward mode='..'>" is set in docker-machines.xml)
 # and isolated machines could use DNS to communicate with the outside.
@@ -73,6 +74,9 @@
 # i thought this could also be circumvented by using '--engine-opt dns=8.8.8.8', but that does not work.
 #
 # network xml format: https://libvirt.org/formatnetwork.html
+#
+# NOTE: updating the config like this does not affect the dnsmasq config file in /var/lib/libvirt/dnsmasq/docker-machines.conf
+# reboot is necessary to apply
 - name: Set resolver for docker-machines network
   xml:
     path: /etc/libvirt/qemu/networks/docker-machines.xml
