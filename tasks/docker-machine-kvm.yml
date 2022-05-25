@@ -5,8 +5,8 @@
       - libvirt-clients
       - libvirt-daemon-system
       - netcat-openbsd # required for remote management via virt-manager
-      - python-libvirt # required for virt/virt_net ansible module
-      - python-lxml # required for virt/virt_net ansible module
+      - python3-libvirt # required for virt/virt_net ansible module
+      - python3-lxml # required for virt/virt_net ansible module
       - dnsmasq # requirement for docker-machine-kvm
     install_recommends: no
 
