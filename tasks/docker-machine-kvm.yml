@@ -10,6 +10,13 @@
       - dnsmasq # requirement for docker-machine-kvm
     install_recommends: no
 
+- name: Ensure dnsmasq service is disabled (docker-machine-kvm only needs the binary, not the service)
+  service:
+    name: dnsmasq
+    state: stopped
+    enabled: no
+  when: not docker_machine_kvm_enable_dnsmasq_service
+
 # we're using this fork because it has these patches:
 # - https://github.com/dhiltgen/docker-machine-kvm/pull/74
 #  https://github.com/dhiltgen/docker-machine-kvm/pull/79
